@@ -1,5 +1,5 @@
 ﻿#include "../exercise.h"
-
+#include <cstring>
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
 template<class T>
@@ -9,7 +9,10 @@ struct Tensor4D {
 
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
-        // TODO: 填入正确的 shape 并计算 size
+        for (int i = 0; i < 4; i++) {
+            shape[i] = shape_[i];
+        }
+        size = shape[0] * shape[1] * shape[2] * shape[3];
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -26,8 +29,31 @@ struct Tensor4D {
     // `others` 长度为 1 但 `this` 长度不为 1 的维度将发生广播计算。
     // 例如，`this` 形状为 `[1, 2, 3, 4]`，`others` 形状为 `[1, 2, 1, 4]`，
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
-    Tensor4D &operator+=(Tensor4D const &others) {
-        // TODO: 实现单向广播的加法
+    Tensor4D &operator+=(Tensor4D const &other) {
+        for (int i = 0; i < 4; ++i) {
+            if (shape[i] != other.shape[i] && other.shape[i] != 1) {
+                throw std::invalid_argument("Incompatible shapes for broadcasting.");
+            }
+        }
+
+        // 执行广播加法
+        for (size_t i = 0; i < shape[0]; ++i) {
+            for (size_t j = 0; j < shape[1]; ++j) {
+                for (size_t k = 0; k < shape[2]; ++k) {
+                    for (size_t l = 0; l < shape[3]; ++l) {
+                        size_t index = i * shape[1] * shape[2] * shape[3] +
+                                       j * shape[2] * shape[3] +
+                                       k * shape[3] +
+                                       l;
+                        size_t other_index = (i % other.shape[0]) * other.shape[1] * other.shape[2] * other.shape[3] +
+                                             (j % other.shape[1]) * other.shape[2] * other.shape[3] +
+                                             (k % other.shape[2]) * other.shape[3] +
+                                             (l % other.shape[3]);
+                        data[index] += other.data[other_index];
+                    }
+                }
+            }
+        }
         return *this;
     }
 };
